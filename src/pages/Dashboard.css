@@ -1,0 +1,92 @@
+/* src/pages/Dashboard.css */
+
+.dashboard-header { margin-bottom: 40px; }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+/* Base Card Style */
+.stat-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    text-decoration: none; /* Remove underline from Link */
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effects */
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    border-color: transparent;
+}
+
+/* Icon Styles */
+.stat-icon-bg {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9fafb;
+    color: #374151;
+    transition: 0.3s;
+}
+
+.stat-icon-bg svg {
+    width: 28px;
+    height: 28px;
+}
+
+/* Text Styles */
+.stat-label {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    margin: 5px 0 0 0;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
+}
+
+/* Specific Card Colors on Hover */
+
+/* Pink (Products) */
+.pink-hover:hover .stat-icon-bg {
+    background: #fce7f3;
+    color: #db2777;
+}
+.pink-hover:hover .stat-value { color: #db2777; }
+
+/* Blue (Orders) */
+.blue-hover:hover .stat-icon-bg {
+    background: #dbeafe;
+    color: #2563eb;
+}
+.blue-hover:hover .stat-value { color: #2563eb; }
+
+/* Green (Revenue) */
+.green-hover:hover .stat-icon-bg {
+    background: #d1fae5;
+    color: #059669;
+}
+.green-hover:hover .stat-value { color: #059669; }

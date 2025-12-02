@@ -1,0 +1,5 @@
+.revenue-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
+.total-badge { background: #111; color: white; padding: 15px 30px; border-radius: 12px; text-align: right; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.total-badge span { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+.total-badge h3 { font-size: 1.8rem; margin: 5px 0 0 0; }
+.text-right { text-align: right; }
