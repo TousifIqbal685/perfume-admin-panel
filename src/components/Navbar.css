@@ -1,0 +1,220 @@
+/* Navbar Container */
+.navbar {
+  height: 80px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+/* Left Section */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hamburger-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #333;
+  padding: 5px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.hamburger-btn:hover {
+  background: #f5f5f5;
+}
+
+.navbar-title-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.navbar-subtitle {
+  font-size: 0.85rem;
+  color: #888;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Right Section & Profile Trigger */
+.navbar-right {
+  position: relative;
+}
+
+.profile-trigger {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.profile-trigger:hover, .profile-trigger.active {
+  border-color: #f525bd; /* Brand Pink */
+  background: #fff0f9;
+}
+
+.avatar-circle {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #111, #333);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* Dropdown Menu - The Premium Popup */
+.profile-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 260px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 2px 10px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.04);
+  padding: 8px;
+  
+  /* Animation */
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-dropdown.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+/* Dropdown Content */
+.dropdown-header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropdown-avatar {
+  width: 36px;
+  height: 36px;
+  background: #f3f4f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.dropdown-user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdown-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #111;
+}
+
+.dropdown-email {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 4px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.dropdown-item:hover {
+  background: #f9f9f9;
+  color: #000;
+}
+
+.dropdown-item.logout {
+  color: #dc2626; /* Red for logout */
+}
+
+.dropdown-item.logout:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 15px; /* Reduce padding */
+    height: 60px;
+  }
+
+  .navbar-left {
+    gap: 10px;
+  }
+
+  .navbar-title {
+    font-size: 1.1rem; /* Smaller title */
+  }
+
+  .navbar-subtitle {
+    display: none; /* Hide subtitle on very small screens to save space */
+  }
+
+  .avatar-circle {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+}
+
+/* Ensure hamburger is only visible on mobile (handled by Sidebar logic mostly, but good to enforce) */
+@media (min-width: 1024px) {
+  .hamburger-btn {
+    display: none; /* Hide hamburger on desktop if sidebar is permanent */
+  }
+}
