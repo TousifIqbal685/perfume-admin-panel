@@ -1,12 +1,14 @@
-// src/pages/Revenue.jsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabase/client";
-import "./Revenue.css"; // We will create this CSS below
+import "./Revenue.css"; 
 
 export default function Revenue() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  
+  // 1. New State for Search
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchRevenue();
@@ -37,6 +39,16 @@ export default function Revenue() {
     setLoading(false);
   }
 
+  // 2. Filter Logic
+  const filteredTransactions = transactions.filter((t) => {
+    const query = searchQuery.toLowerCase();
+    const orderId = t.id?.toLowerCase() || "";
+    const customerName = t.customers?.full_name?.toLowerCase() || "";
+    
+    // Search checks both ID and Name
+    return orderId.includes(query) || customerName.includes(query);
+  });
+
   return (
     <div className="page-container">
       <div className="revenue-header">
@@ -48,6 +60,26 @@ export default function Revenue() {
             <span>Total Earnings</span>
             <h3>৳ {totalRevenue.toLocaleString()}</h3>
         </div>
+      </div>
+
+      {/* 3. Search Bar UI */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="🔍 Search by Order ID or Customer Name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: "12px 16px",
+            width: "100%",
+            maxWidth: "400px",
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            fontSize: "0.95rem",
+            outline: "none",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.02)"
+          }}
+        />
       </div>
 
       <div className="table-wrapper">
@@ -63,7 +95,8 @@ export default function Revenue() {
             </tr>
           </thead>
           <tbody>
-            {transactions.map((t) => (
+            {/* 4. Use filteredTransactions instead of transactions */}
+            {filteredTransactions.map((t) => (
               <tr key={t.id}>
                 <td>{new Date(t.created_at).toLocaleDateString()}</td>
                 <td style={{fontFamily:'monospace'}}>#{t.id.slice(0, 8)}</td>
@@ -78,8 +111,9 @@ export default function Revenue() {
                 </td>
               </tr>
             ))}
-            {transactions.length === 0 && !loading && (
-                <tr><td colSpan="6" style={{textAlign:'center', padding:'30px'}}>No paid transactions yet.</td></tr>
+            
+            {filteredTransactions.length === 0 && !loading && (
+                <tr><td colSpan="6" style={{textAlign:'center', padding:'30px'}}>No matching records found.</td></tr>
             )}
           </tbody>
         </table>

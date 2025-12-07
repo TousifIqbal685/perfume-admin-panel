@@ -14,6 +14,8 @@ export default function Products() {
     { id: "e06e7a2b-2f05-4baa-90da-1573d82ae74b", name: "Men" },
   ];
 
+  const perfumeTypes = ["Niche", "Arabian", "Designer"];
+
   /* --- STATES --- */
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
@@ -21,11 +23,11 @@ export default function Products() {
   const productRefs = useRef({});
   const [previousStock, setPreviousStock] = useState({});
 
-  // ADD FORM STATE
+  // ADD FORM STATE - Added perfume_type
   const [form, setForm] = useState({
-    title: "", brand: "", 
+    title: "", brand: "", perfume_type: "", // <--- Added here
     price: "", discounted_price: "", 
-    price_5ml: "", price_10ml: "", // Decant fields
+    price_5ml: "", price_10ml: "", 
     stock: "",
     description: "", top_notes: "", heart_notes: "", base_notes: "", category_id: "",
   });
@@ -113,6 +115,7 @@ export default function Products() {
       .insert([{
         ...form, 
         slug, 
+        perfume_type: form.perfume_type, // <--- Saving the type
         price: Number(form.price),
         discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
         price_5ml: form.price_5ml ? Number(form.price_5ml) : null,
@@ -142,7 +145,7 @@ export default function Products() {
     setMessage("✅ Product Added Successfully!");
     
     setForm({
-        title: "", brand: "", 
+        title: "", brand: "", perfume_type: "", // <--- Reset type
         price: "", discounted_price: "", 
         price_5ml: "", price_10ml: "",
         stock: "", description: "",
@@ -166,6 +169,7 @@ export default function Products() {
     await supabase.from("products").update({
         title: editForm.title, 
         brand: editForm.brand, 
+        perfume_type: editForm.perfume_type, // <--- Update type
         price: Number(editForm.price),
         discounted_price: editForm.discounted_price ? Number(editForm.discounted_price) : null,
         price_5ml: editForm.price_5ml ? Number(editForm.price_5ml) : null,
@@ -211,7 +215,7 @@ export default function Products() {
     loadProducts(); 
   };
 
-  /* --- INLINE UPDATES (UPDATED LOGIC HERE) --- */
+  /* --- INLINE UPDATES --- */
   const autoUpdate = async (id, field, value) => {
     setProducts(prev => 
       prev.map(p => {
@@ -222,13 +226,10 @@ export default function Products() {
             let stockToSave;
             
             if (!newVisible) {
-                // Turning OFF: Save current stock, set visible stock to 0
                 setPreviousStock(prevMap => ({ ...prevMap, [id]: currentStock }));
                 stockToSave = 0; 
             } else {
-                // Turning ON: Restore stock
                 const restored = previousStock[id] || 0;
-                // LOGIC CHANGE: If restored stock is 0, set to 1. Otherwise use restored value.
                 stockToSave = restored === 0 ? 1 : restored;
             }
             
@@ -286,6 +287,13 @@ export default function Products() {
                 <select className="input" value={form.category_id} onChange={e=>setForm({...form, category_id: e.target.value})} required>
                     <option value="">Select</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+            </div>
+            {/* NEW TYPE DROPDOWN */}
+            <div className="form-group"><label>Type</label>
+                <select className="input" value={form.perfume_type} onChange={e=>setForm({...form, perfume_type: e.target.value})} >
+                    <option value="">Select Type</option>
+                    {perfumeTypes.map(type => <option key={type} value={type}>{type}</option>)}
                 </select>
             </div>
           </div>
@@ -366,6 +374,8 @@ export default function Products() {
                     <div className="card-info">
                         <h4 className="admin-title" title={p.title}>{p.title}</h4>
                         <p className="admin-brand">{p.brand}</p>
+                        {/* SHOW TYPE IN CARD */}
+                        {p.perfume_type && <span style={{fontSize:'11px', background:'#eee', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.perfume_type}</span>}
                     </div>
                 </div>
                 
@@ -373,7 +383,6 @@ export default function Products() {
                     <div className="field-row"><label>Price</label><input type="number" className="admin-input-small" value={p.price} onChange={e => autoUpdate(p.id, "price", e.target.value)} /></div>
                     <div className="field-row"><label>Discount</label><input type="number" className="admin-input-small" value={p.discounted_price || ""} onChange={e => autoUpdate(p.id, "discounted_price", e.target.value)} /></div>
                     <div className="field-row"><label>Stock</label><input type="number" className="admin-input-small" value={p.stock} onChange={e => autoUpdate(p.id, "stock", e.target.value)} /></div>
-                    {/* Visual indicator if decants exist */}
                     {(p.price_5ml || p.price_10ml) && (
                         <div className="field-row" style={{fontSize:'10px', color:'green', justifyContent:'flex-start'}}>
                              ✓ Has Decants
@@ -405,7 +414,7 @@ export default function Products() {
         ))}
       </div>
 
-      {/* --- EDIT MODAL (RESIZED) --- */}
+      {/* --- EDIT MODAL --- */}
       {editingProduct && (
         <div className="modal-overlay" onClick={() => setEditingProduct(null)}>
             <div className="modal-content" 
@@ -422,6 +431,15 @@ export default function Products() {
                         <div className="form-group"><label>Title</label><input className="input" value={editForm.title || ""} onChange={e=>setEditForm({...editForm, title: e.target.value})} /></div>
                         <div className="form-group"><label>Brand</label><input className="input" value={editForm.brand || ""} onChange={e=>setEditForm({...editForm, brand: e.target.value})} /></div>
                         <div className="form-group"><label>Category</label><select className="input" value={editForm.category_id || ""} onChange={e=>setEditForm({...editForm, category_id: e.target.value})}>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                    </div>
+
+                    {/* EDIT TYPE */}
+                    <div className="form-group" style={{maxWidth:'33%', marginBottom:'15px'}}>
+                        <label>Type</label>
+                        <select className="input" value={editForm.perfume_type || ""} onChange={e=>setEditForm({...editForm, perfume_type: e.target.value})}>
+                            <option value="">Select Type</option>
+                            {perfumeTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                        </select>
                     </div>
                     
                     {/* EDIT PRICING */}

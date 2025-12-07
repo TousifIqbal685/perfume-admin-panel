@@ -1,0 +1,103 @@
+/* --- MOBILE & DESKTOP DRAWER DEFAULT --- */
+.sidebar-drawer {
+  width: 260px;
+  background: #1c1c1e;
+  color: white;
+  height: 100vh;
+  position: fixed; /* Always fixed to overlay content */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  transition: transform 0.3s ease-in-out;
+  transform: translateX(-100%); /* Hidden by default on ALL screens */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* When the "open" class is added (via React state), slide it in */
+.sidebar-drawer.open {
+  transform: translateX(0);
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.logo-dot {
+  width: 10px;
+  height: 10px;
+  background: #f525bd;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #f525bd;
+}
+
+.sidebar-title-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title-main {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-title-sub {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  /* Ensure it is visible so users can close the drawer */
+  display: block; 
+}
+
+/* Navigation Links */
+.sidebar-nav {
+  padding: 20px 10px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  color: #a0a0a0;
+  text-decoration: none;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.sidebar-link.active {
+  background: #f525bd;
+  color: white;
+  box-shadow: 0 4px 15px rgba(245, 37, 189, 0.3);
+}
+
+.sidebar-icon {
+  font-size: 1.2rem;
+}

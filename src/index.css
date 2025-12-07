@@ -1,7 +1,7 @@
 /* --- RESET & BASICS --- */
 :root {
   --sidebar-width: 260px;
-  --header-height: 70px;
+  --header-height: 80px;
   --bg-color: #f4f6f8;
   --primary-color: #f525bd;
 }
@@ -10,7 +10,11 @@ body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-color);
-  overflow-x: hidden; /* Prevent horizontal scroll on body */
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 /* --- APP SHELL LAYOUT --- */
@@ -18,6 +22,7 @@ body {
   display: flex;
   min-height: 100vh;
   position: relative;
+  /* Sidebar and Main Area will sit side-by-side automatically via flexbox */
 }
 
 /* --- SIDEBAR (Mobile First Logic) --- */
@@ -48,12 +53,33 @@ body {
   padding: 0 20px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
   justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.logo-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--primary-color);
+}
+
+.sidebar-title-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-title-main {
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
+}
+
+.sidebar-title-sub {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .sidebar-close {
@@ -93,16 +119,16 @@ body {
 .main-area {
   flex: 1;
   width: 100%;
-  margin-left: 0; /* No margin on mobile */
-  transition: margin-left 0.3s ease;
   display: flex;
   flex-direction: column;
+  /* Removed margin-left logic because sidebar will be sticky */
 }
 
 .page-body {
   padding: 20px;
   overflow-x: hidden;
   max-width: 100vw;
+  flex: 1;
 }
 
 /* Sidebar Overlay (Dark background when sidebar is open on mobile) */
@@ -116,23 +142,27 @@ body {
 
 /* --- DESKTOP STYLES (min-width: 1024px) --- */
 @media (min-width: 1024px) {
-  /* Keep sidebar always visible on Desktop */
+  /* 1. Force sidebar to be visible and sit in the flow (Sticky) */
   .sidebar-drawer {
-    transform: translateX(0);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    transform: none !important;
+    flex-shrink: 0; /* Prevents sidebar from being squished */
   }
   
-  /* Hide Close Button on Desktop */
+  /* 2. Hide Close Button on Desktop */
   .sidebar-close {
     display: none;
   }
 
-  /* Push content to the right */
+  /* 3. Main Area takes remaining space naturally (Flexbox) */
   .main-area {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    margin-left: 0;
+    width: 100%;
   }
 
-  /* Hide backdrop on desktop */
+  /* 4. Hide backdrop on desktop */
   .sidebar-backdrop {
     display: none;
   }
@@ -152,4 +182,19 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

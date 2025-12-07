@@ -1,6 +1,6 @@
-// src/components/Sidebar.jsx
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import "./Sidebar.css"; // <--- IMPORT THE CSS HERE
 
 export default function Sidebar({ isOpen, onClose }) {
   const { pathname } = useLocation();
@@ -13,6 +13,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <span className="sidebar-title-main">Perfume Admin</span>
           <span className="sidebar-title-sub">Control Panel</span>
         </div>
+        {/* Close button only visible on mobile via CSS */}
         <button className="sidebar-close" onClick={onClose}>✕</button>
       </div>
 
@@ -27,7 +28,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <span>Dashboard</span>
         </Link>
 
-        {/* ✅ Products Page */}
+        {/* Products Page */}
         <Link
           to="/products"
           className={`sidebar-link ${
@@ -39,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <span>Products</span>
         </Link>
 
-        {/* ✅ Orders Page */}
+        {/* Orders Page */}
         <Link
           to="/orders"
           className={`sidebar-link ${
@@ -51,7 +52,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <span>Orders</span>
         </Link>
 
-        {/* ✅ Revenue Page */}
+        {/* Finance (Revenue) Page */}
         <Link
           to="/revenue"
           className={`sidebar-link ${
@@ -63,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
           <span>Finance</span>
         </Link>
 
-        {/* ✅ NEW: Ads Management Page */}
+        {/* Ads Management Page */}
         <Link
           to="/ads"
           className={`sidebar-link ${

@@ -30,6 +30,8 @@
   padding: 5px;
   border-radius: 8px;
   transition: background 0.2s;
+  /* UPDATED: Ensure button is visible on all screen sizes */
+  display: block; 
 }
 
 .hamburger-btn:hover {
@@ -212,9 +214,4 @@
   }
 }
 
-/* Ensure hamburger is only visible on mobile (handled by Sidebar logic mostly, but good to enforce) */
-@media (min-width: 1024px) {
-  .hamburger-btn {
-    display: none; /* Hide hamburger on desktop if sidebar is permanent */
-  }
-}
+/* UPDATED: The code that hid the hamburger on desktop has been removed. */
