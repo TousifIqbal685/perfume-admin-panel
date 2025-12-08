@@ -10,7 +10,7 @@ export default function Products() {
   const categories = [
     { id: "243e4b4a-aa06-4679-9c7e-bd96db02de34", name: "Unisex" },
     { id: "2ceb546a-4940-448a-9987-83870d2638f3", name: "Women" },
-    { id: "7741f377-e4f5-45e8-b49b-9f2765c2ea60", name: "Body Spray" },
+    { id: "7741f377-e4f5-45e8-b49b-9f2765c2ea60", name: "Car Perfume" },
     { id: "e06e7a2b-2f05-4baa-90da-1573d82ae74b", name: "Men" },
   ];
 
@@ -23,19 +23,20 @@ export default function Products() {
   const productRefs = useRef({});
   const [previousStock, setPreviousStock] = useState({});
 
-  // ADD FORM STATE - Added perfume_type
+  // FORM STATE
   const [form, setForm] = useState({
-    title: "", brand: "", perfume_type: "", // <--- Added here
-    price: "", discounted_price: "", 
+    title: "", brand: "", perfume_type: "",
+    price: "", volume_ml: "", 
+    discounted_price: "", 
     price_5ml: "", price_10ml: "", 
-    stock: "",
+    stock: "", bestseller_priority: 0,
     description: "", top_notes: "", heart_notes: "", base_notes: "", category_id: "",
   });
   const [newImages, setNewImages] = useState([]); 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // EDIT MODAL STATE
+  // EDIT STATE
   const [editingProduct, setEditingProduct] = useState(null); 
   const [editForm, setEditForm] = useState({}); 
   const [editNewImages, setEditNewImages] = useState([]); 
@@ -52,6 +53,8 @@ export default function Products() {
         *,
         product_images (id, image_url)
       `)
+      // Sort by Priority High -> Low, then by Date
+      .order("bestseller_priority", { ascending: false }) 
       .order("created_at", { ascending: false });
 
     if (error) console.error(error);
@@ -84,9 +87,9 @@ export default function Products() {
     const uploadedUrls = [];
     for (let file of files) {
       const filename = `${slug}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const { error } = await supabase.storage.from("product-images").upload(filename, file);
+      const { error } = await supabase.storage.from("cms-media").upload(filename, file);
       if (!error) {
-        const { data } = supabase.storage.from("product-images").getPublicUrl(filename);
+        const { data } = supabase.storage.from("cms-media").getPublicUrl(filename);
         uploadedUrls.push(data.publicUrl);
       }
     }
@@ -115,12 +118,13 @@ export default function Products() {
       .insert([{
         ...form, 
         slug, 
-        perfume_type: form.perfume_type, // <--- Saving the type
+        volume_ml: form.volume_ml ? Number(form.volume_ml) : null,
         price: Number(form.price),
         discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
         price_5ml: form.price_5ml ? Number(form.price_5ml) : null,
         price_10ml: form.price_10ml ? Number(form.price_10ml) : null,
         stock: Number(form.stock), 
+        bestseller_priority: Number(form.bestseller_priority) || 0,
         main_image_url: mainImageUrl, 
         is_visible: true, 
         is_bestseller: false,
@@ -145,11 +149,11 @@ export default function Products() {
     setMessage("✅ Product Added Successfully!");
     
     setForm({
-        title: "", brand: "", perfume_type: "", // <--- Reset type
-        price: "", discounted_price: "", 
+        title: "", brand: "", perfume_type: "",
+        price: "", volume_ml: "", discounted_price: "", 
         price_5ml: "", price_10ml: "",
-        stock: "", description: "",
-        top_notes: "", heart_notes: "", base_notes: "", category_id: "",
+        stock: "", bestseller_priority: 0,
+        description: "", top_notes: "", heart_notes: "", base_notes: "", category_id: "",
     });
     setNewImages([]);
     loadProducts();
@@ -169,12 +173,14 @@ export default function Products() {
     await supabase.from("products").update({
         title: editForm.title, 
         brand: editForm.brand, 
-        perfume_type: editForm.perfume_type, // <--- Update type
+        perfume_type: editForm.perfume_type,
+        volume_ml: editForm.volume_ml ? Number(editForm.volume_ml) : null,
         price: Number(editForm.price),
         discounted_price: editForm.discounted_price ? Number(editForm.discounted_price) : null,
         price_5ml: editForm.price_5ml ? Number(editForm.price_5ml) : null,
         price_10ml: editForm.price_10ml ? Number(editForm.price_10ml) : null,
         stock: Number(editForm.stock), 
+        bestseller_priority: Number(editForm.bestseller_priority) || 0,
         description: editForm.description,
         top_notes: editForm.top_notes, 
         heart_notes: editForm.heart_notes,
@@ -289,23 +295,52 @@ export default function Products() {
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
             </div>
-            {/* NEW TYPE DROPDOWN */}
-            <div className="form-group"><label>Type</label>
+          </div>
+          
+          <div className="form-group" style={{maxWidth:'32%'}}>
+                <label>Type</label>
                 <select className="input" value={form.perfume_type} onChange={e=>setForm({...form, perfume_type: e.target.value})} >
                     <option value="">Select Type</option>
                     {perfumeTypes.map(type => <option key={type} value={type}>{type}</option>)}
                 </select>
             </div>
-          </div>
 
-          {/* Pricing Grid */}
+          {/* Pricing Grid with Volume */}
           <div className="form-grid-3">
-            <div className="form-group"><label>Full Bottle Price (৳)</label><input type="number" className="input" value={form.price} onChange={e=>setForm({...form, price: e.target.value})} required/></div>
-            <div className="form-group"><label>Discounted Price (৳)</label><input type="number" className="input" value={form.discounted_price} onChange={e=>setForm({...form, discounted_price: e.target.value})} /></div>
-            <div className="form-group"><label>Stock</label><input type="number" className="input" value={form.stock} onChange={e=>setForm({...form, stock: e.target.value})} /></div>
+            <div className="form-group">
+                <label>Bottle Size (ml)</label>
+                <input type="number" className="input" placeholder="e.g. 100" value={form.volume_ml} onChange={e=>setForm({...form, volume_ml: e.target.value})} />
+            </div>
+            <div className="form-group">
+                <label>Full Bottle Price (৳)</label>
+                <input type="number" className="input" value={form.price} onChange={e=>setForm({...form, price: e.target.value})} required/>
+            </div>
+            <div className="form-group">
+                <label>Discounted Price (৳)</label>
+                <input type="number" className="input" value={form.discounted_price} onChange={e=>setForm({...form, discounted_price: e.target.value})} />
+            </div>
+          </div>
+          
+          <div className="form-grid-3">
+             <div className="form-group">
+                <label>Stock Quantity</label>
+                <input type="number" className="input" value={form.stock} onChange={e=>setForm({...form, stock: e.target.value})} />
+             </div>
+             {/* NEW PRIORITY FIELD */}
+             <div className="form-group">
+                <label>Priority (1-100)</label>
+                <input 
+                    type="number" 
+                    className="input" 
+                    placeholder="100 = Top" 
+                    min="0" 
+                    max="100"
+                    value={form.bestseller_priority} 
+                    onChange={e=>setForm({...form, bestseller_priority: e.target.value})} 
+                />
+             </div>
           </div>
 
-          {/* Decant Section */}
           <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>Decant Pricing (Optional)</h4>
              <div className="form-grid-3">
@@ -328,7 +363,6 @@ export default function Products() {
              <div className="form-group"><label>Base Notes</label><input className="input" value={form.base_notes} onChange={e=>setForm({...form, base_notes: e.target.value})} /></div>
           </div>
 
-          {/* UNIFIED IMAGE UPLOAD */}
           <div className="form-group">
             <label>Images (First image will be Main)</label>
             <div className="image-upload-area">
@@ -374,8 +408,11 @@ export default function Products() {
                     <div className="card-info">
                         <h4 className="admin-title" title={p.title}>{p.title}</h4>
                         <p className="admin-brand">{p.brand}</p>
-                        {/* SHOW TYPE IN CARD */}
-                        {p.perfume_type && <span style={{fontSize:'11px', background:'#eee', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.perfume_type}</span>}
+                        
+                        <div style={{display:'flex', gap:'5px', marginTop:'4px'}}>
+                            {p.perfume_type && <span style={{fontSize:'11px', background:'#eee', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.perfume_type}</span>}
+                            {p.volume_ml && <span style={{fontSize:'11px', background:'#eef', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.volume_ml}ml</span>}
+                        </div>
                     </div>
                 </div>
                 
@@ -383,6 +420,11 @@ export default function Products() {
                     <div className="field-row"><label>Price</label><input type="number" className="admin-input-small" value={p.price} onChange={e => autoUpdate(p.id, "price", e.target.value)} /></div>
                     <div className="field-row"><label>Discount</label><input type="number" className="admin-input-small" value={p.discounted_price || ""} onChange={e => autoUpdate(p.id, "discounted_price", e.target.value)} /></div>
                     <div className="field-row"><label>Stock</label><input type="number" className="admin-input-small" value={p.stock} onChange={e => autoUpdate(p.id, "stock", e.target.value)} /></div>
+                    {/* Inline Priority Edit */}
+                    <div className="field-row">
+                        <label>Priority</label>
+                        <input type="number" className="admin-input-small" style={{borderColor: '#ffd700'}} value={p.bestseller_priority || 0} onChange={e => autoUpdate(p.id, "bestseller_priority", e.target.value)} />
+                    </div>
                     {(p.price_5ml || p.price_10ml) && (
                         <div className="field-row" style={{fontSize:'10px', color:'green', justifyContent:'flex-start'}}>
                              ✓ Has Decants
@@ -433,7 +475,6 @@ export default function Products() {
                         <div className="form-group"><label>Category</label><select className="input" value={editForm.category_id || ""} onChange={e=>setEditForm({...editForm, category_id: e.target.value})}>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                     </div>
 
-                    {/* EDIT TYPE */}
                     <div className="form-group" style={{maxWidth:'33%', marginBottom:'15px'}}>
                         <label>Type</label>
                         <select className="input" value={editForm.perfume_type || ""} onChange={e=>setEditForm({...editForm, perfume_type: e.target.value})}>
@@ -442,14 +483,21 @@ export default function Products() {
                         </select>
                     </div>
                     
-                    {/* EDIT PRICING */}
                     <div className="form-grid-3">
+                        <div className="form-group"><label>Bottle Size (ml)</label><input type="number" className="input" value={editForm.volume_ml || ""} onChange={e=>setEditForm({...editForm, volume_ml: e.target.value})} placeholder="ml" /></div>
                         <div className="form-group"><label>Full Price</label><input type="number" className="input" value={editForm.price || ""} onChange={e=>setEditForm({...editForm, price: e.target.value})} /></div>
                         <div className="form-group"><label>Discounted</label><input type="number" className="input" value={editForm.discounted_price || ""} onChange={e=>setEditForm({...editForm, discounted_price: e.target.value})} /></div>
+                    </div>
+                    
+                    <div className="form-grid-3">
                         <div className="form-group"><label>Stock</label><input type="number" className="input" value={editForm.stock || ""} onChange={e=>setEditForm({...editForm, stock: e.target.value})} /></div>
+                        {/* EDIT PRIORITY */}
+                        <div className="form-group">
+                            <label>Priority (1-100)</label>
+                            <input type="number" className="input" value={editForm.bestseller_priority || 0} onChange={e=>setEditForm({...editForm, bestseller_priority: e.target.value})} />
+                        </div>
                     </div>
 
-                    {/* EDIT DECANTS */}
                     <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
                         <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>Decant Pricing</h4>
                         <div className="form-grid-3">
@@ -472,8 +520,6 @@ export default function Products() {
                         <div className="form-group"><label>Base Notes</label><input className="input" value={editForm.base_notes || ""} onChange={e=>setEditForm({...editForm, base_notes: e.target.value})} /></div>
                     </div>
 
-                    <h4 style={{marginTop: '20px', marginBottom: '10px'}}>Manage Images</h4>
-                    
                     <div className="preview-grid">
                         {editForm.main_image_url && (
                             <div className="preview-card">
