@@ -32,14 +32,21 @@ export default function Products() {
     stock: "", bestseller_priority: 0,
     description: "", top_notes: "", heart_notes: "", base_notes: "", category_id: "",
   });
-  const [newImages, setNewImages] = useState([]); 
+  
+  // UNIFIED IMAGE STATE FOR ADDING
+  // Stores File objects
+  const [addImages, setAddImages] = useState([]); 
+  
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   // EDIT STATE
   const [editingProduct, setEditingProduct] = useState(null); 
   const [editForm, setEditForm] = useState({}); 
-  const [editNewImages, setEditNewImages] = useState([]); 
+  
+  // UNIFIED IMAGE STATE FOR EDITING
+  // Stores objects: { type: 'url' | 'file', src: string | File }
+  const [editImages, setEditImages] = useState([]); 
 
   /* --- LOAD DATA --- */
   useEffect(() => {
@@ -53,7 +60,6 @@ export default function Products() {
         *,
         product_images (id, image_url)
       `)
-      // Sort by Priority High -> Low, then by Date
       .order("bestseller_priority", { ascending: false }) 
       .order("created_at", { ascending: false });
 
@@ -72,47 +78,74 @@ export default function Products() {
   }
 
   /* --- IMAGE HELPERS --- */
-  const handleImageSelect = (e) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setNewImages((prev) => [...prev, ...files]);
-    }
-  };
-
-  const removeNewImage = (index) => {
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const uploadImagesToStorage = async (files, slug) => {
     const uploadedUrls = [];
     for (let file of files) {
-      const filename = `${slug}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      // Clean filename
+      const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const filename = `${slug}-${Date.now()}-${cleanName}`;
+      
       const { error } = await supabase.storage.from("cms-media").upload(filename, file);
       if (!error) {
         const { data } = supabase.storage.from("cms-media").getPublicUrl(filename);
         uploadedUrls.push(data.publicUrl);
+      } else {
+        console.error("Upload error:", error);
       }
     }
     return uploadedUrls;
   };
 
-  /* --- ADD PRODUCT LOGIC --- */
+  /* --- ADD MODE IMAGE HANDLERS --- */
+  const handleAddImageSelect = (e) => {
+    if (e.target.files) {
+      setAddImages((prev) => [...prev, ...Array.from(e.target.files)]);
+    }
+  };
+  const removeAddImage = (index) => {
+    setAddImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  /* --- EDIT MODE IMAGE HANDLERS --- */
+  const handleEditImageSelect = (e) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).map(file => ({
+        type: 'file',
+        src: file // The actual File object
+      }));
+      setEditImages(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeEditImage = (index) => {
+    // Just remove from the array. 
+    // If index 0 is removed, index 1 becomes index 0 (the new main image) automatically.
+    setEditImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /* --- ADD PRODUCT SUBMIT --- */
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMessage("");
 
-    if (newImages.length === 0) {
+    if (addImages.length === 0) {
         alert("Please select at least one image.");
         setSaving(false);
         return;
     }
 
     const slug = generateSlug(form.brand, form.title);
-    const uploadedUrls = await uploadImagesToStorage(newImages, slug);
+    
+    // 1. Upload all images
+    const uploadedUrls = await uploadImagesToStorage(addImages, slug);
+    
+    // 2. Determine Main vs Extras based on Order
+    // Index 0 is Main, Index 1+ are Extras
     const mainImageUrl = uploadedUrls[0]; 
     const extraImageUrls = uploadedUrls.slice(1); 
 
+    // 3. Insert Product
     const { data: inserted, error } = await supabase
       .from("products")
       .insert([{
@@ -125,7 +158,7 @@ export default function Products() {
         price_10ml: form.price_10ml ? Number(form.price_10ml) : null,
         stock: Number(form.stock), 
         bestseller_priority: Number(form.bestseller_priority) || 0,
-        main_image_url: mainImageUrl, 
+        main_image_url: mainImageUrl, // First image goes here
         is_visible: true, 
         is_bestseller: false,
       }])
@@ -138,6 +171,7 @@ export default function Products() {
       return;
     }
 
+    // 4. Insert Extra Images
     if (extraImageUrls.length > 0) {
       const imageInserts = extraImageUrls.map(url => ({
         product_id: inserted.id, image_url: url
@@ -148,6 +182,7 @@ export default function Products() {
     setSaving(false);
     setMessage("✅ Product Added Successfully!");
     
+    // Reset Form
     setForm({
         title: "", brand: "", perfume_type: "",
         price: "", volume_ml: "", discounted_price: "", 
@@ -155,7 +190,7 @@ export default function Products() {
         stock: "", bestseller_priority: 0,
         description: "", top_notes: "", heart_notes: "", base_notes: "", category_id: "",
     });
-    setNewImages([]);
+    setAddImages([]);
     loadProducts();
   };
 
@@ -163,14 +198,63 @@ export default function Products() {
   const openEditModal = (product) => {
     setEditingProduct(product);
     setEditForm({ ...product });
-    setEditNewImages([]); 
+    
+    // Combine existing images into one unified array for the UI
+    // Order: Main Image -> Extra Images
+    let combinedImages = [];
+    
+    if (product.main_image_url) {
+        combinedImages.push({ type: 'url', src: product.main_image_url });
+    }
+    
+    if (product.product_images && product.product_images.length > 0) {
+        const extras = product.product_images.map(img => ({ type: 'url', src: img.image_url }));
+        combinedImages = [...combinedImages, ...extras];
+    }
+
+    setEditImages(combinedImages);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
 
-    await supabase.from("products").update({
+    // 1. Process Images
+    // We need to iterate through editImages. 
+    // If it's a URL, keep it. If it's a File, upload it.
+    let finalImageUrls = [];
+    const filesToUpload = [];
+    const fileIndices = [];
+
+    // Separate existing URLs from new files to maintain order
+    for (let i = 0; i < editImages.length; i++) {
+        const img = editImages[i];
+        if (img.type === 'url') {
+            finalImageUrls[i] = img.src;
+        } else {
+            filesToUpload.push(img.src);
+            fileIndices.push(i); // Remember where this file belongs in the array
+        }
+    }
+
+    // Upload new files
+    if (filesToUpload.length > 0) {
+        const uploaded = await uploadImagesToStorage(filesToUpload, editingProduct.slug);
+        // Place uploaded URLs back into their correct positions
+        uploaded.forEach((url, idx) => {
+            const originalIndex = fileIndices[idx];
+            finalImageUrls[originalIndex] = url;
+        });
+    }
+
+    // Filter out undefined holes (just in case)
+    finalImageUrls = finalImageUrls.filter(u => u);
+
+    const newMainImage = finalImageUrls[0] || null;
+    const newExtraImages = finalImageUrls.slice(1);
+
+    // 2. Update Product Data (including Main Image)
+    const { error: updateError } = await supabase.from("products").update({
         title: editForm.title, 
         brand: editForm.brand, 
         perfume_type: editForm.perfume_type,
@@ -186,38 +270,33 @@ export default function Products() {
         heart_notes: editForm.heart_notes,
         base_notes: editForm.base_notes, 
         category_id: editForm.category_id,
+        main_image_url: newMainImage // Update main image based on index 0
     }).eq("id", editingProduct.id);
 
-    if (editNewImages.length > 0) {
-        const uploadedUrls = await uploadImagesToStorage(editNewImages, editingProduct.slug);
-        
-        if (!editingProduct.main_image_url && uploadedUrls.length > 0) {
-            await supabase.from("products").update({ main_image_url: uploadedUrls[0] }).eq("id", editingProduct.id);
-            uploadedUrls.shift(); 
-        }
+    if (updateError) {
+        console.error("Update Error", updateError);
+        setSaving(false);
+        return;
+    }
 
-        if (uploadedUrls.length > 0) {
-            const imageInserts = uploadedUrls.map(url => ({ product_id: editingProduct.id, image_url: url }));
-            await supabase.from("product_images").insert(imageInserts);
-        }
+    // 3. Update Extra Images (Product Images Table)
+    // Strategy: Delete all existing extras for this product and re-insert the list.
+    // This ensures the order matches exactly what the user sees in the UI.
+    
+    // Delete old extras
+    await supabase.from("product_images").delete().eq("product_id", editingProduct.id);
+
+    // Insert new extras (if any)
+    if (newExtraImages.length > 0) {
+        const inserts = newExtraImages.map(url => ({
+            product_id: editingProduct.id,
+            image_url: url
+        }));
+        await supabase.from("product_images").insert(inserts);
     }
 
     setSaving(false);
     setEditingProduct(null); 
-    loadProducts(); 
-  };
-
-  const deleteExistingImage = async (imgId, isMain) => {
-    if (!window.confirm("Delete this image?")) return;
-
-    if (isMain) {
-       await supabase.from("products").update({ main_image_url: null }).eq("id", editingProduct.id);
-       setEditForm(prev => ({ ...prev, main_image_url: null })); 
-    } else {
-       await supabase.from("product_images").delete().eq("id", imgId);
-       const updatedExtras = editingProduct.product_images.filter(img => img.id !== imgId);
-       setEditingProduct(prev => ({ ...prev, product_images: updatedExtras }));
-    }
     loadProducts(); 
   };
 
@@ -326,7 +405,6 @@ export default function Products() {
                 <label>Stock Quantity</label>
                 <input type="number" className="input" value={form.stock} onChange={e=>setForm({...form, stock: e.target.value})} />
              </div>
-             {/* NEW PRIORITY FIELD */}
              <div className="form-group">
                 <label>Priority (1-100)</label>
                 <input 
@@ -364,17 +442,17 @@ export default function Products() {
           </div>
 
           <div className="form-group">
-            <label>Images (First image will be Main)</label>
+            <label>Product Images (First one is Main Image)</label>
             <div className="image-upload-area">
-                <input type="file" id="add-images" multiple accept="image/*" onChange={handleImageSelect} hidden />
+                <input type="file" id="add-images" multiple accept="image/*" onChange={handleAddImageSelect} hidden />
                 <label htmlFor="add-images" className="file-label">Click to Select Images</label>
             </div>
             <div className="preview-grid">
-                {newImages.map((file, i) => (
+                {addImages.map((file, i) => (
                     <div key={i} className="preview-card">
                         <img src={URL.createObjectURL(file)} alt="preview" />
-                        <button type="button" className="remove-btn" onClick={() => removeNewImage(i)}>✕</button>
-                        {i === 0 && <span className="badge">MAIN</span>}
+                        <button type="button" className="remove-btn" onClick={() => removeAddImage(i)}>✕</button>
+                        {i === 0 && <span className="badge">1st</span>}
                     </div>
                 ))}
             </div>
@@ -404,7 +482,6 @@ export default function Products() {
         {products.map(p => (
             <div className={`admin-card ${!p.is_visible ? 'opacity-60' : ''}`} key={p.id} id={`product-${p.id}`} ref={el => productRefs.current[p.id] = el}>
                 <div className="card-header">
-                    {/* NEW WORKING LINE */}
                     <div className="admin-img-wrap">
                       <img 
                         src={p.main_image_url || "https://placehold.co/80x80/png"} 
@@ -412,10 +489,10 @@ export default function Products() {
                         alt={p.title}
                         onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/80x80/png"; }} 
                       />
-                    </div>                    <div className="card-info">
+                    </div>
+                    <div className="card-info">
                         <h4 className="admin-title" title={p.title}>{p.title}</h4>
                         <p className="admin-brand">{p.brand}</p>
-                        
                         <div style={{display:'flex', gap:'5px', marginTop:'4px'}}>
                             {p.perfume_type && <span style={{fontSize:'11px', background:'#eee', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.perfume_type}</span>}
                             {p.volume_ml && <span style={{fontSize:'11px', background:'#eef', padding:'2px 6px', borderRadius:'4px', color:'#555'}}>{p.volume_ml}ml</span>}
@@ -427,7 +504,6 @@ export default function Products() {
                     <div className="field-row"><label>Price</label><input type="number" className="admin-input-small" value={p.price} onChange={e => autoUpdate(p.id, "price", e.target.value)} /></div>
                     <div className="field-row"><label>Discount</label><input type="number" className="admin-input-small" value={p.discounted_price || ""} onChange={e => autoUpdate(p.id, "discounted_price", e.target.value)} /></div>
                     <div className="field-row"><label>Stock</label><input type="number" className="admin-input-small" value={p.stock} onChange={e => autoUpdate(p.id, "stock", e.target.value)} /></div>
-                    {/* Inline Priority Edit */}
                     <div className="field-row">
                         <label>Priority</label>
                         <input type="number" className="admin-input-small" style={{borderColor: '#ffd700'}} value={p.bestseller_priority || 0} onChange={e => autoUpdate(p.id, "bestseller_priority", e.target.value)} />
@@ -498,7 +574,6 @@ export default function Products() {
                     
                     <div className="form-grid-3">
                         <div className="form-group"><label>Stock</label><input type="number" className="input" value={editForm.stock || ""} onChange={e=>setEditForm({...editForm, stock: e.target.value})} /></div>
-                        {/* EDIT PRIORITY */}
                         <div className="form-group">
                             <label>Priority (1-100)</label>
                             <input type="number" className="input" value={editForm.bestseller_priority || 0} onChange={e=>setEditForm({...editForm, bestseller_priority: e.target.value})} />
@@ -527,33 +602,27 @@ export default function Products() {
                         <div className="form-group"><label>Base Notes</label><input className="input" value={editForm.base_notes || ""} onChange={e=>setEditForm({...editForm, base_notes: e.target.value})} /></div>
                     </div>
 
-                    <div className="preview-grid">
-                        {editForm.main_image_url && (
-                            <div className="preview-card">
-                                <img src={editForm.main_image_url} alt="main" />
-                                <button type="button" className="remove-btn" onClick={() => deleteExistingImage(null, true)}>✕</button>
-                                <span className="badge">MAIN</span>
-                            </div>
-                        )}
-                        {editingProduct.product_images?.map(img => (
-                            <div key={img.id} className="preview-card">
-                                <img src={img.image_url} alt="extra" />
-                                <button type="button" className="remove-btn" onClick={() => deleteExistingImage(img.id, false)}>✕</button>
-                            </div>
-                        ))}
-                    </div>
-
+                    {/* UNIFIED IMAGE EDITING AREA */}
                     <div className="form-group" style={{marginTop: '15px'}}>
-                        <label>Add More Images</label>
-                        <input type="file" multiple accept="image/*" onChange={e => setEditNewImages([...e.target.files])} />
+                        <label>Product Images (Drag & Drop or use buttons to reorder, First image is Main)</label>
+                        <input type="file" multiple accept="image/*" onChange={handleEditImageSelect} style={{marginBottom:'10px'}} />
+                        
                         <div className="preview-grid">
-                            {editNewImages.map((file, i) => (
-                                <div key={i} className="preview-card" style={{opacity: 0.7}}>
-                                    <img src={URL.createObjectURL(file)} alt="new" />
-                                    <span className="badge" style={{background:'green'}}>NEW</span>
+                            {editImages.map((img, i) => (
+                                <div key={i} className="preview-card">
+                                    <img 
+                                        src={img.type === 'url' ? img.src : URL.createObjectURL(img.src)} 
+                                        alt="preview" 
+                                    />
+                                    <button type="button" className="remove-btn" onClick={() => removeEditImage(i)}>✕</button>
+                                    
+                                    {/* Visual Indicator for First Image */}
+                                    {i === 0 && <span className="badge" style={{background:'#007bff'}}>Main</span>}
+                                    {img.type === 'file' && <span className="badge" style={{background:'green', top: i===0?'25px':'5px'}}>New</span>}
                                 </div>
                             ))}
                         </div>
+                        {editImages.length === 0 && <p style={{color:'#999', fontSize:'13px', fontStyle:'italic'}}>No images selected. Product will have no image.</p>}
                     </div>
 
                     <button className="primary-btn" type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
