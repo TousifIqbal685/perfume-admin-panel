@@ -404,8 +404,15 @@ export default function Products() {
         {products.map(p => (
             <div className={`admin-card ${!p.is_visible ? 'opacity-60' : ''}`} key={p.id} id={`product-${p.id}`} ref={el => productRefs.current[p.id] = el}>
                 <div className="card-header">
-                    <div className="admin-img-wrap"><img src={p.main_image_url || "https://via.placeholder.com/80"} className="admin-img" alt={p.title} /></div>
-                    <div className="card-info">
+                    {/* NEW WORKING LINE */}
+                    <div className="admin-img-wrap">
+                      <img 
+                        src={p.main_image_url || "https://placehold.co/80x80/png"} 
+                        className="admin-img" 
+                        alt={p.title}
+                        onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/80x80/png"; }} 
+                      />
+                    </div>                    <div className="card-info">
                         <h4 className="admin-title" title={p.title}>{p.title}</h4>
                         <p className="admin-brand">{p.brand}</p>
                         
